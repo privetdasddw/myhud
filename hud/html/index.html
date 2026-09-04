@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Cluster HUD</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div id="hud" class="hidden">
+
+  <!-- АДРЕС — плашка над radar: [pin] 9146, Innocence Blvd. (В).
+       Одна цельная группа: pin → postal → street → направление.
+       Направление всегда замыкает блок, в фиксированном кружке. -->
+  <div class="addr surf">
+    <span class="addr__pin ico ico--sm" data-icon="pin"></span>
+    <span class="addr__postal" id="postal"></span>
+    <span class="addr__street" id="street"></span>
+    <span class="addr__dir" id="compass"></span>
+  </div>
+
+  <!-- МИКРОФОН — круглый бейдж на юго-западном радиусе radar:
+       half на карте, half на кадре — прикреплён к кругу, а не плавает.
+       talking несёт цвет, off — диагональный штрих. -->
+  <div class="micb surf" id="micwrap">
+    <span class="ico" data-icon="mic"></span>
+  </div>
+
+  <!-- ПРАВАЯ КОЛОНКА — одна вертикальная линия справа от radar:
+       env-полоса (время | погода) → панель кластера → радио-футер.
+       Якорь без фона и без размеров. -->
+  <div class="rail">
+
+    <!-- ВРЕМЯ И ПОГОДА — одна компактная полоса из двух сегментов
+         с тонким разделителем. Показана всегда; кластер ниже —
+         только за рулём, но место в колонке зарезервировано. -->
+    <div class="env surf">
+      <div class="chip">
+        <span class="ico ico--sm" id="dayicon" data-icon="moon"></span>
+        <span class="chip__val" id="time"></span>
+      </div>
+      <i class="env__sep"></i>
+      <div class="chip">
+        <span class="ico ico--sm" id="wxicon" data-icon="cloud"></span>
+        <span class="chip__val" id="temp"></span>
+      </div>
+    </div>
+
+    <!-- КЛАСТЕР АВТОМОБИЛЯ — только за рулём. Три строки:
+         скорость → передачи (+ лампа ремня в правом конце) → топливо.
+         Радио — узкий футер во всю ширину панели. -->
+    <div class="cluster">
+
+      <div class="panel surf">
+        <div class="speedrow">
+          <span class="speed" id="speed">000</span>
+          <span class="speed__unit" id="unit"></span>
+          <span class="limit" id="limitwrap">
+            <span class="limit__sign" id="limitbox"><span id="limit"></span></span>
+            <span class="limit__delta" id="delta"></span>
+          </span>
+        </div>
+
+        <div class="gears" id="gears">
+          <i class="gears__cap" id="gearcap"></i>
+          <span data-gear="P">P</span><span data-gear="R">R</span><span data-gear="N">N</span><span data-gear="D">D</span><span data-gear="S">S</span>
+          <i class="belt" id="beltpair"><i class="ico ico--sm" id="belt" data-icon="belt"></i></i>
+        </div>
+
+        <div class="fuel" id="fuelrow">
+          <span class="ico ico--sm" data-icon="fuel"></span>
+          <span class="fuel__track"><i id="fuelbar"></i></span>
+          <span class="fuel__pct" id="fuel"></span>
+        </div>
+      </div>
+
+      <div class="rdo surf" id="radio"><span id="radiolabel"></span></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="js/icons.js"></script>
+<script src="js/state.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
