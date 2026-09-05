@@ -121,11 +121,13 @@ mic, radioChannel, radioTalking`), те же экспорты
    - **PATCH** — правка, полировка, документация.
 2. Дописать блок в этот раздел: что вошло, breaking changes, как ставить.
 3. Закоммитить на рабочей ветке, открыть PR в `main`, влить **squash**.
-4. Создать GitHub Release `vX.Y.Z` на получившемся коммите `main`.
-   Workflow **Release asset** сам собирает `hud-X.Y.Z.zip` (папка `hud`
-   без `_preview_*.png` / `_shot_*.png`) и прикладывает его к релизу.
-   Если релиз уже опубликован — `workflow_dispatch` с тегом `vX.Y.Z`.
-   Локальный архив `release/hud-X.Y.Z.zip` — тот же состав, для проверки.
+4. Собрать `release/hud-X.Y.Z.zip` из папки `hud` (без `_preview_*.png`
+   и `_shot_*.png`) и закоммитить архив в репозиторий.
+5. Создать GitHub Release `vX.Y.Z` на получившемся коммите `main` и
+   приложить zip как asset. Если `uploads.github.com` недоступен —
+   workflow **Release asset** (`release: published` / `workflow_dispatch`)
+   делает тот же zip и аттачит его; пока ассет не появился, качать
+   `release/hud-X.Y.Z.zip` с `main`.
 
 После каждой готовой работы — этот же процесс, не копить изменения
 между тегами.
