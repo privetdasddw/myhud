@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 
 author 'custom'
-description 'Cluster HUD — address bar over the radar, mic badge on its rim, time/weather strip and drive cluster on the right'
+description 'Flat Editorial HUD — layered address over the radar, status capsule (time/weather/mic) and borderless drive cluster on the right'
 version '1.0.0'
 
 client_language 'ru'

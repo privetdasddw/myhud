@@ -3,7 +3,9 @@
   const S = window.HUDState;
   const $ = (id) => document.getElementById(id);
 
-  let hud, micwrap, beltpair, fuelrow, gearcap;
+  const GEAR_ORDER = ['P', 'R', 'N', 'D', 'S'];
+
+  let hud, micwrap, beltpair, fuelrow;
 
   function setTxt(el, v) {
     if (el && el.textContent !== v) el.textContent = v;
@@ -18,44 +20,7 @@
     }
   }
 
-  /* Скользящая линия под активной передачей. Кластер скрыт через
-     opacity (не display), поэтому offsetWidth/offsetLeft читаются
-     и пока игрок пешком.
-     Позиция ставится СРАЗУ, без ожидания requestAnimationFrame: rAF в
-     CEF может не выполниться, когда страница не композитится, и линия
-     тогда осталась бы под прежней буквой. Дополнительный вызов в rAF
-     оставлен только чтобы поймать поздний пересчёт раскладки шрифта.
-     Первая установка идёт без перехода — иначе линия «выезжает»
-     из-под P при первом появлении кластера. */
-  let capPlaced = false;
   let fuelPlaced = false;
-
-  function updateGearCap() {
-    if (!gearcap) return;
-    const box = $('gears');
-    const active = box && box.querySelector('span.on');
-    if (!active || !active.offsetWidth) {
-      gearcap.style.opacity = '0';
-      return;
-    }
-    if (!capPlaced) {
-      gearcap.style.transition = 'none';
-    }
-    gearcap.style.opacity = '1';
-    gearcap.style.width = active.offsetWidth + 'px';
-    gearcap.style.transform = 'translate(' + active.offsetLeft + 'px, 0)';
-    if (!capPlaced) {
-      void gearcap.offsetWidth;
-      gearcap.style.transition = '';
-      capPlaced = true;
-    }
-  }
-
-  /* Пересчёт сейчас + повторно на следующем кадре (шрифт/раскладка). */
-  function syncGearCap() {
-    updateGearCap();
-    requestAnimationFrame(updateGearCap);
-  }
 
   function updateDelta() {
     const el = $('delta');
@@ -64,16 +29,16 @@
     const hasLimit = S.limit > 0;
     const over = hasLimit && S.speed > S.limit;
     el.textContent = over ? '+' + (S.speed - S.limit) : '';
-    el.classList.toggle('on', over);
-    el.classList.toggle('over', over);
     if (box) box.classList.toggle('over', over);
   }
 
   function updateRadio() {
     const label = $('radiolabel');
     if (!label) return;
+    /* Точка-статус уже несёт смысл «радио», поэтому текст — только канал
+       (или RDO в тишине): без дублирующего «RDO ·». */
     const ch = S.radioChannel || 0;
-    const text = ch > 0 ? 'RDO \u00b7 CH-' + ch : 'RDO';
+    const text = ch > 0 ? 'CH-' + ch : 'RDO';
     if (label.textContent !== text) label.textContent = text;
     const g = $('radio');
     if (g) g.classList.toggle('live', !!S.radioTalking);
@@ -82,10 +47,7 @@
   const renderers = {
     visible(v) { hud.classList.toggle('hidden', !v); },
 
-    drive(v) {
-      hud.classList.toggle('veh', !!v);
-      syncGearCap();
-    },
+    drive(v) { hud.classList.toggle('veh', !!v); },
 
     time(v) { setTxt($('time'), v); },
 
@@ -109,17 +71,36 @@
     unit(v) { setTxt($('unit'), v); },
 
     speed(v) {
-      setTxt($('speed'), String(v).padStart(3, '0'));
+      /* Гашёные ведущие нули: «041» → [0]41. Ширина строки стабильна
+         (3 табличных цифры), но читается значение как 41. «000» гасит
+         первые две цифры — на стоянке кластер показывает чистый 0. */
+      const el = $('speed');
+      if (el) {
+        const s = String(Math.max(0, Math.min(999, Math.round(v)))).padStart(3, '0');
+        if (el.dataset.v !== s) {
+          el.dataset.v = s;
+          const cut = s.search(/[1-9]/);
+          const lead = cut === -1 ? 2 : cut;
+          el.innerHTML = lead > 0
+            ? '<span class="dz">' + s.slice(0, lead) + '</span>' + s.slice(lead)
+            : s;
+        }
+      }
       updateDelta();
     },
 
+    /* Одна крупная активная буква + точка-позиция в колонке PRNDS. */
     gear(v) {
-      const box = $('gears');
-      if (!box) return;
-      box.querySelectorAll('span').forEach((s) => {
-        s.classList.toggle('on', s.dataset.gear === v);
-      });
-      syncGearCap();
+      const letter = $('gearletter');
+      if (letter) setTxt(letter, v);
+      const dots = $('geardots');
+      if (!dots) return;
+      let idx = GEAR_ORDER.indexOf(v);
+      if (idx < 0) idx = 3;
+      const kids = dots.children;
+      for (let i = 0; i < kids.length; i++) {
+        kids[i].classList.toggle('on', i === idx);
+      }
     },
 
     fuel(v) {
@@ -178,12 +159,7 @@
       micwrap = $('micwrap');
       beltpair = $('beltpair');
       fuelrow = $('fuelrow');
-      gearcap = $('gearcap');
       first = true;  /* reset so the next apply() processes all fields */
-
-      /* Remove old listener before adding (init may be called on resource restart). */
-      window.removeEventListener('resize', syncGearCap);
-      window.addEventListener('resize', syncGearCap);
 
       document.querySelectorAll('[data-icon]').forEach((el) => {
         const svg = window.HUDIcons[el.dataset.icon];

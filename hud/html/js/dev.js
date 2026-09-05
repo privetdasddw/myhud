@@ -28,18 +28,36 @@
     </div>`;
   document.body.prepend(scene);
 
+  /* ?bright — дневная сцена: проверяет читаемость плашек на светлом
+     небе и снегу (ночная — дефолт, как в реальном вечернем кадре). */
+  const params = new URLSearchParams(location.search);
+  const veh = params.has('veh');
+  const bright = params.has('bright');
+
+  if (bright) {
+    document.body.classList.add('bright');
+    const st = document.createElement('style');
+    st.textContent = [
+      'body.bright #devscene .base{background:linear-gradient(180deg,#93a7bd 0%,#bfcad6 46%,#d8dfe6 100%)}',
+      'body.bright #devscene .bokeh{display:none}',
+      'body.bright #devscene .road{background:linear-gradient(180deg,rgba(122,132,142,0) 0%,rgba(104,114,125,.92) 30%,#78838f 100%)}',
+      'body.bright #devscene .lane{background:repeating-linear-gradient(180deg,rgba(255,255,255,.55) 0 26px,transparent 26px 66px);opacity:.55}',
+      'body.bright #devscene .vignette{box-shadow:inset 0 0 220px 60px rgba(25,35,50,.22)}',
+      'body.bright #devscene .radar{border-color:rgba(0,0,0,.28)}'
+    ].join('');
+    document.head.appendChild(st);
+  }
+
   /* Preview использует тот же accent, что стоит в config.lua
      (Config.Accent = '#f2b13c') — единственный функциональный цвет HUD. */
   window.HUD.config({ accent: '#f2b13c', lowFuel: 15 });
 
-  const veh = new URLSearchParams(location.search).has('veh');
-
   window.HUD.apply({
     visible: true,
-    time: '8:56 PM',
-    night: true,
-    weather: 'cloud',
-    temperature: '70°F',
+    time: bright ? '2:41 PM' : '8:56 PM',
+    night: !bright,
+    weather: bright ? 'sun' : 'cloud',
+    temperature: bright ? '84°F' : '70°F',
     street: 'Innocence Blvd.',
     postal: '9146',
     direction: 'В',
@@ -49,9 +67,14 @@
     radioTalking: false
   });
 
+  /* ?long — самое длинное название улицы Лос-Сантоса + 5-значный postal:
+     плашка не должна вылезать за диаметр круга (ellipsis раньше). */
+  if (params.has('long')) {
+    window.HUD.apply({ street: 'Mount Vinewood Dr.', postal: '10243' });
+  }
+
   if (veh) {
-    /* Штатное состояние: скорость ниже лимита, знак не инвертирован.
-       Чтобы посмотреть превышение — speed 58, delta 8. */
+    /* Штатное состояние: скорость ниже лимита, знак не инвертирован. */
     window.HUD.apply({
       drive: true,
       speed: 41,
@@ -61,6 +84,18 @@
       delta: 0,
       seatbelt: false
     });
+
+    /* ?over — стресс-тест состояний: превышение (+delta, инверсия знака),
+       низкий топливо (акцент), эфир радио, пристёгнутый ремень. */
+    if (params.has('over')) {
+      window.HUD.apply({
+        speed: 58,
+        gear: 'D',
+        fuel: 12,
+        seatbelt: true,
+        radioTalking: true
+      });
+    }
   } else {
     window.HUD.apply({ drive: false, seatbelt: null, limit: 0, delta: 0 });
   }
