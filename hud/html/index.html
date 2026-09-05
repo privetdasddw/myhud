@@ -10,61 +10,54 @@
 <body>
 <div id="hud" class="hidden">
 
-  <!-- АДРЕС — двухстрочный layered-блок над radar, левый край по левому
-       краю круга. Строка 1: улица (uppercase) + направление в конце.
-       Строка 2: пин + postal — тихая подстрочная строка. -->
+  <!-- АДРЕС — одна строка: postal-чип + улица + направление в конце.
+       Левый край по левой кромке круга. Длинная улица режется
+       многоточием, postal и direction фиксированы. -->
   <div class="addr surf">
-    <div class="addr__row">
-      <span class="addr__street" id="street"></span>
-      <span class="addr__dir" id="compass"></span>
-    </div>
-    <div class="addr__row addr__row--sub">
-      <span class="ico ico--xs" data-icon="pin"></span>
-      <span class="addr__postal" id="postal"></span>
-    </div>
+    <span class="addr__postal">
+      <span class="ico ico--2xs" data-icon="pin"></span>
+      <span id="postal"></span>
+    </span>
+    <span class="addr__street" id="street"></span>
+    <span class="addr__dir" id="compass"></span>
   </div>
 
-  <!-- ПРАВАЯ КОЛОНКА — статус-капсула внизу (опорная линия круга),
-       автомобильный кластер над ней. Без фона у колонки. -->
+  <!-- ПРАВАЯ КОЛОНКА — стек маленьких модулей на нижней касательной
+       круга: скорость → топливо → ремень/радио → статус. -->
   <div class="rail">
 
-    <!-- КЛАСТЕР — только за рулём. Слева герой-скорость + единица под
-         ней; справа колонка: знак лимита → активная передача с точками
-         позиции PRNDS. Ниже топливо, в футере ремень + радио. -->
+    <!-- DRIVE — только за рулём. Три отдельных модуля вместо одной
+         карточки: герой-скорость, тонкая полоса топлива, aux-стрип. -->
     <div class="drive">
-      <div class="drive__main surf">
-        <div class="drive__top">
-          <div class="drive__speed">
-            <span class="speed" id="speed">000</span>
-            <span class="drive__unit" id="unit"></span>
-          </div>
-          <div class="drive__side">
-            <span class="limit" id="limitwrap">
-              <span class="limit__delta" id="delta"></span>
-              <span class="limit__sign" id="limitbox"><span id="limit"></span></span>
-            </span>
-            <span class="gear">
-              <i class="gear__dots" id="geardots"><i></i><i></i><i></i><i></i><i></i></i>
-              <b class="gear__letter" id="gearletter">D</b>
-            </span>
-          </div>
+      <div class="spd surf surf--dense">
+        <div class="spd__left">
+          <span class="speed" id="speed"></span>
+          <span class="spd__unit" id="unit"></span>
         </div>
+        <i class="spd__div"></i>
+        <div class="spd__right">
+          <span class="limit" id="limitwrap">
+            <span class="limit__delta" id="delta"></span>
+            <span class="limit__sign" id="limitbox"><span id="limit"></span></span>
+          </span>
+          <span class="gears" id="gearstrip"><b data-g="P">P</b><b data-g="R">R</b><b data-g="N">N</b><b data-g="D">D</b><b data-g="S">S</b></span>
+        </div>
+      </div>
 
-        <div class="fuel" id="fuelrow">
-          <span class="ico ico--xs" data-icon="fuel"></span>
-          <span class="fuel__track"><i id="fuelbar"></i></span>
-          <span class="fuel__pct" id="fuel"></span>
-        </div>
+      <div class="fuel surf" id="fuelrow">
+        <span class="ico ico--xs" data-icon="fuel"></span>
+        <span class="fuel__track"><i id="fuelbar"></i></span>
+        <span class="fuel__pct" id="fuel"></span>
+      </div>
 
-        <div class="drive__foot">
-          <span class="belt" id="beltpair"><span class="ico ico--xs" id="belt" data-icon="belt"></span></span>
-          <span class="rdo" id="radio"><i class="rdo__dot"></i><span id="radiolabel"></span></span>
-        </div>
+      <div class="aux surf">
+        <span class="belt" id="beltpair"><span class="ico ico--xs" data-icon="belt"></span></span>
+        <span class="rdo" id="radio"><i class="rdo__dot"></i><span id="radiolabel"></span></span>
       </div>
     </div>
 
-    <!-- СТАТУС — время · погода · микрофон в одной капсуле. Иконка и
-         значение — плотная пара; пары разведены шире, чем внутри пары. -->
+    <!-- СТАТУС — время · погода · микрофон. Тянется на ширину колонки,
+         микрофон прижат к правому краю. -->
     <div class="status surf">
       <span class="status__group">
         <span class="ico ico--xs" id="dayicon" data-icon="moon"></span>

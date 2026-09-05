@@ -89,17 +89,16 @@
       updateDelta();
     },
 
-    /* Одна крупная активная буква + точка-позиция в колонке PRNDS. */
+    /* Строка селектора PRNDS: активная буква подсвечена классом .on
+       (R/S в активе — акцентные через CSS). Неизвестное значение —
+       D, как раньше. */
     gear(v) {
-      const letter = $('gearletter');
-      if (letter) setTxt(letter, v);
-      const dots = $('geardots');
-      if (!dots) return;
-      let idx = GEAR_ORDER.indexOf(v);
-      if (idx < 0) idx = 3;
-      const kids = dots.children;
+      const strip = $('gearstrip');
+      if (!strip) return;
+      const val = GEAR_ORDER.indexOf(v) >= 0 ? v : 'D';
+      const kids = strip.children;
       for (let i = 0; i < kids.length; i++) {
-        kids[i].classList.toggle('on', i === idx);
+        kids[i].classList.toggle('on', kids[i].dataset.g === val);
       }
     },
 

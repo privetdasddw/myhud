@@ -3,8 +3,8 @@ game 'gta5'
 lua54 'yes'
 
 author 'custom'
-description 'Flat Editorial HUD — layered address over the radar, status capsule (time/weather/mic) and borderless drive cluster on the right'
-version '2.0.0'
+description 'Deck HUD — single-row address over the radar, modular right rail: hero speed, fuel strip, aux strip and status bar'
+version '3.0.0'
 
 client_language 'ru'
 
