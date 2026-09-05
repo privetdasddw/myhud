@@ -60,7 +60,7 @@
     temperature: bright ? '84°F' : '70°F',
     street: 'Innocence Blvd.',
     postal: '9146',
-    direction: 'В',
+    direction: 'E',
     unit: 'MPH',
     mic: veh ? 'idle' : 'talking',
     radioChannel: 2,

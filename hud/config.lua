@@ -11,8 +11,9 @@ Config = {}
 ------------------------------------------------------------------
 
 -- Single accent color of the whole HUD (hex).
--- Единственный функциональный цвет: активная передача, разговор в
--- микрофон, низкий уровень топлива, превышение лимита, эфир радио.
+-- Единственный функциональный цвет: превышение лимита, низкий уровень
+-- топлива, разговор в микрофон, эфир радио, непристёгнутый ремень,
+-- R/S-передача (активные P/N/D — белые: цвет означает состояние).
 -- Всё остальное — монохром (тёмные плашки + белый/серый текст).
 -- Тёплый янтарь по умолчанию. Полностью монохромный HUD — '#ffffff',
 -- прежний песочный — '#d5c295'.
@@ -25,8 +26,9 @@ Config.Unit = 'MPH'
 Config.TempUnit = 'F'
 
 -- Compass rose letters, clockwise from north. 4 cardinal directions.
--- С = север, В = восток, Ю = юг, З = запад
-Config.Compass = { 'С', 'В', 'Ю', 'З' }
+-- The direction is rendered as a compact Latin N/E/S/W suffix in the
+-- same address module (it is deliberately not a separate HUD card).
+Config.Compass = { 'N', 'E', 'S', 'W' }
 
 -- Fuel percentage at or below which the fuel row turns accent.
 Config.LowFuel = 15

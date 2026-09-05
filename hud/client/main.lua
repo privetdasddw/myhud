@@ -309,7 +309,7 @@ end
 local function directionOf(entity)
     local bearing = (360.0 - GetEntityHeading(entity)) % 360.0
     local sector = math.floor(((bearing + 45.0) % 360.0) / 90.0) + 1
-    return (Config.Compass or { 'С', 'В', 'Ю', 'З' })[sector] or 'С'
+    return (Config.Compass or { 'N', 'E', 'S', 'W' })[sector] or 'N'
 end
 
 ------------------------------------------------------------------
