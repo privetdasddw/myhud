@@ -1,0 +1,42 @@
+# Packs hud/ (without preview/shot PNGs) and attaches hud-X.Y.Z.zip
+# to the matching GitHub Release. Runs on every published release and
+# on manual dispatch (used when the tag already exists).
+name: Release asset
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. v2.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  pack-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Pack hud and upload zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          VER="${TAG#v}"
+          test -n "$VER"
+          mkdir -p /tmp/pack
+          cp -a hud /tmp/pack/hud
+          find /tmp/pack/hud -type f \( -name '_preview_*.png' -o -name '_shot_*.png' \) -delete
+          test -f /tmp/pack/hud/fxmanifest.lua
+          (cd /tmp/pack && zip -r -9 "$GITHUB_WORKSPACE/hud-${VER}.zip" hud)
+          gh release upload "$TAG" "$GITHUB_WORKSPACE/hud-${VER}.zip" --clobber
+          echo "attached hud-${VER}.zip to $TAG"
