@@ -1,404 +1,287 @@
 /* =====================================================================
-   COMPONENTS — визуальный слой HUD
+   COMPONENTS — «flat editorial», второе поколение визуального языка.
 
-   МАСШТАБ. Единственный неизменяемый якорь композиции — круг radar (его
-   рисует внешний ресурс, HUD только читает его геометрию из
-   --radar-cx / --radar-cy / --radar-r). Кегли заданы в rem от html
-   font-size (100vh/72), поэтому пропорции к диаметру круга D одинаковы
-   на 1080p / 1440p и на 16:9 / 21:9.
+   ЯЗЫК. Никаких кромок, теней и волосяных линий: поверхности — ровные
+   полупрозрачные скримы без border и box-shadow; слои разделяются
+   плотностью заливки и воздухом. Формы: капсула (статус), крупный
+   радиус (кластер, адрес), скруглённый квадрат (знак лимита), круг
+   (направление, микрофон). Типографика — голос системы: герой-цифры
+   800-го веса с отрицательным трекингом, микро-лейблы ВЕРХНИМ регистром
+   с широким трекингом, табличные цифры повсюду.
 
-   Одна высота для всех спутников круга — 2.1rem (адрес, env-полоса,
-   бейдж микрофона): три плашки читаются одним ритмом.
+   ЦВЕТ. Монохром + единственный акцент (--acc): активная передача,
+   превышение, мало топлива, эфир, разговор. Светлый tint (--chip) —
+   только у маленьких чипов в покое.
 
    ИЕРАРХИЯ (кегль, 1080p):
-     speed   2.7rem  ≈ 40px   единственный «громкий» элемент
-     street  1.15rem ≈ 17px   первичная строка адреса
-     chip    1.05rem ≈ 16px   время / погода — спокойнее адреса
-     gear    1rem    ≈ 15px   селектор
-     pct     .85rem  ≈ 13px   процент топлива
-     unit    .78rem  ≈ 12px   MPH — трекинговый label
-     radio   .72rem  ≈ 11px   самый тихий текст, футер карточки
-
-   СТИЛЬ. Плоский тёмный полупрозрачный overlay: ровная заливка, чёрная
-   волосяная кромка, мягкая тёмная тень (см. :root в base.css). Ни одного
-   светлого края, градиента, блика, bevel, shine и glow. Светлый текст
-   несёт тонкую тёмную обводку --edge. Состояния несёт один акцент
-   (--acc): активная передача, речь в микрофон, мало топлива, превышение,
-   эфир радио. Круглые элементы (бейдж микрофона, знак лимита, кружок
-   направления) — единственные «точки» композиции; вложенные состояния
-   (активная передача, знак лимита) — тёмные «колодцы» --sunken.
-
-   АНИМАЦИИ. Только paint-only свойства (color, background-color, width)
-   плюс transform у скользящего колодца передачи. opacity/transform у
-   появляющихся элементов не анимируются: CEF FiveM теряет альфа-канал у
-   слоёв компоновки, продвинутых после загрузки страницы.
+     speed    3.4rem ≈ 51px  герой; ведущие нули гаснут (.dz)
+     street   1rem   ≈ 15px  uppercase, трекинг .07em
+     time     .95rem ≈ 14px  первично в капсуле; погода тише
+     gear     1.4rem ≈ 21px  активная буква, акцент
+     pct      .8rem  ≈ 12px  топливо
+     postal   .74rem ≈ 11px  трекинговая подстрочная строка
+     unit     .66rem ≈ 10px  лейбл под цифрами, трекинг .32em
+     radio    .66rem ≈ 10px  футер кластера, самый тихий
    ================================================================== */
 
 /* ---------------------------------------------------------------------
-   АДРЕС — плашка над radar, одна цельная группа
-
-     [pin] 9146, Innocence Blvd.  ( В )
-
-   ПОРЯДОК. pin → postal → street → направление: DOM-порядок совпадает
-   с читаемым, grid расставляет колонки сам. Направление ВСЕГДА
-   замыкает блок. Запятая ровно одна: она живёт в
-   .addr__street::before и исчезает вместе с пустой улицей (за городом
-   GetStreetNameAtCoord отдаёт ''), поэтому висячего разделителя не
-   бывает.
-
-   ГЕОМЕТРИЯ. Плашка сжимается по содержимому (width: max-content) и
-   центрована на cx, так что группа дышит симметрично. Сетка — пять
-   колонок с нулевым column-gap: запятая прижата к номеру зоны
-   (9146, Innocence), а жёлоб между улицей и кружком направления —
-   отдельная колонка .5rem, одинаковая на любой улице и на любом
-   разрешении. Именно этот инвариант «улица → направление» проверяет
-   _dev/layout.py. max-width = диаметру круга: длинное название не
-   вылезает за карту, а упирается в ellipsis (колонка улицы —
-   minmax(0,1fr)).
-
-   ХРОМ УБРАН ДО МИНИМУМА. Поля, жёлоб и кружок подрезаны ровно
-   настолько, чтобы САМОЕ ДЛИННОЕ название Лос-Сантоса («Mount
-   Vinewood Dr.») укладывалось в диаметр без ellipsis на 900p / 1080p /
-   1440p — раньше оно обрезалось на всех разрешениях. Считает
-   _dev/layout.py: он печатает natural / cap и запас по каждому.
+   АДРЕС — layered-блок: улица (uppercase) + направление в конце строки;
+   ниже тихая строка пин + postal. Левый край — по левой кромке круга
+   (якорь в layout.css), асимметричная редакционная сетка.
    ------------------------------------------------------------------ */
 
 .addr {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) .5rem auto;
-  align-items: center;
-  column-gap: 0;
-  width: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: .26rem;
   max-width: calc(var(--radar-r) * 2);
-  height: 2.1rem;
-  padding: 0 .58rem;
+  padding: .52rem .8rem .56rem;
+  border-radius: var(--r-addr);
 }
 
-.addr__pin {
-  grid-column: 1;
-  /* Пин чуть притапливается к левому полю и отбивается от номера:
-     его глиф имеет собственный боковой отбор, как и иконки чипов
-     (тот же приём у .chip > .ico). Тон третичный: пин — маркер типа
-     строки, а не данные. */
-  margin-left: -.06rem;
-  margin-right: .42rem;
-  color: var(--txt-3);
-}
-
-.addr__postal {
-  grid-column: 2;
-  font-size: 1.15rem;
-  font-variation-settings: "wght" 520;
-  letter-spacing: -.01em;
-  color: var(--txt-2);
-  text-shadow: var(--edge);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.addr__row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
 }
 
 .addr__street {
-  grid-column: 3;
   min-width: 0;
-  font-size: 1.15rem;
-  font-variation-settings: "wght" 640;
-  letter-spacing: -.012em;
-  color: var(--txt);
-  text-shadow: var(--edge);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: uppercase;
+  font-size: 1rem;
+  font-variation-settings: "wght" 700;
+  letter-spacing: .07em;
+  color: var(--txt);
+  text-shadow: var(--edge);
 }
 
-/* Единственная запятая адреса. Пробел неразрывный: обычный пробел в
-   начале строчного бокса браузер выбрасывает, и «9146,Alta St.»
-   слиплось бы. Вес и тон — как у номера зоны: это разделитель,
-   а не текст. */
-.addr__street::before {
-  content: ",\00a0";
-  color: var(--txt-2);
-  font-variation-settings: "wght" 500;
-}
-
-/* Улицы нет — нет и разделителя: «9146            ( В )». */
-.addr__street:empty::before { content: none; }
-
-/* НАПРАВЛЕНИЕ — прозрачный кружок с тонкой белой обводкой, последний
-   элемент группы. Бокс КВАДРАТНЫЙ и жёсткий, а не min-width: у
-   С / В / Ю / З разная ширина глифа, и только фиксированный бокс даёт
-   всем четырём один и тот же круг. letter-spacing строго 0: CSS
-   добавляет трекинг и ПОСЛЕ последнего глифа, из-за чего буква уехала
-   бы влево от центра. Заливки нет вообще — сквозь кружок видно кадр
-   игры. Белая обводка здесь — ЕДИНСТВЕННОЕ исключение из запрета
-   светлых краёв; это кольцо вокруг одного глифа, а не кромка карточки.
-   Ни glow, ни градиента, ни второй обводки внутрь.
-
-   Диаметр 1.5rem = 0.71 высоты плашки: кружок сидит внутри строки с
-   равным воздухом сверху и снизу и не спорит с названием улицы. */
+/* Направление замыкает блок: маленький круг на светлом tint — молодой
+   чип, а не обведённое кольцо. Фиксированный квадрат: у С/В/Ю/З разная
+   ширина глифа, круг всегда один. */
 .addr__dir {
-  grid-column: 5;
-  width: 1.5rem;
-  height: 1.5rem;
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: .78rem;
-  font-variation-settings: "wght" 700;
+  border-radius: 50%;
+  background: var(--chip);
+  font-size: .68rem;
+  font-variation-settings: "wght" 800;
   letter-spacing: 0;
   color: var(--txt);
   text-shadow: var(--edge);
-  background: transparent;
-  border: 1px solid var(--ring);
-  border-radius: 50%;
+}
+
+.addr__row--sub { gap: .34rem; }
+.addr__row--sub .ico { color: var(--txt-3); margin-left: -.04rem; }
+
+.addr__postal {
+  font-size: .74rem;
+  font-variation-settings: "wght" 640;
+  letter-spacing: .14em;
+  color: var(--txt-2);
+  text-shadow: var(--edge);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------------------------------------------------------------------
-   МИКРОФОН — круглый бейдж на юго-западном радиусе radar (якорь в
-   layout.css). Маленький статус-индикатор: никакой тяжёлой карточки,
-   диаметр — общая высота спутников 2.1rem.
+   СТАТУС-КАПСУЛА — время · погода · микрофон одной группой на опорной
+   линии круга. Время первично, погода на ступень тише, разделитель —
+   точка, микрофон замыкает капсулу круглым чипом.
    ------------------------------------------------------------------ */
 
+.status {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  height: 2rem;
+  padding: 0 .4rem 0 .7rem;
+  border-radius: var(--r-bar);
+  white-space: nowrap;
+}
+
+/* Иконка + значение — плотная пара (.3rem), тогда как пары разведены
+   на .55rem: близость = принадлежность, микро-иерархия через расстояние. */
+.status__group {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.status .ico { color: var(--txt-3); }
+
+.status__val {
+  font-size: .95rem;
+  font-variation-settings: "wght" 650;
+  letter-spacing: .01em;
+  color: var(--txt);
+  text-shadow: var(--edge);
+  font-variant-numeric: tabular-nums;
+}
+
+.status__val--sub {
+  font-variation-settings: "wght" 560;
+  color: var(--txt-2);
+}
+
+.status__sep {
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .22);
+}
+
+/* МИКРОФОН — круглый чип в конце капсулы. off — прозрачен, приглушён и
+   перечёркнут; idle — светлый tint; talking — акцентная инверсия. */
 .micb {
+  position: relative;
+  margin-left: .25rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  background: var(--chip);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 50%;
+  transition: background-color .18s ease;
 }
 
 .micb .ico { color: var(--txt-2); transition: color .16s ease; }
-.micb .ico svg { width: 1.05rem; height: 1.05rem; }
 
-/* Три состояния — только цветом и штрихом, без рамок, колец и glow:
-   off — приглушён и перечёркнут, idle — спокойный, talking — акцент. */
-.micb.off { color: var(--txt-4); }
-.micb.off .ico { color: currentColor; }
-.micb.talking .ico { animation: micTalk 1.2s ease-in-out infinite; }
+.micb.off { background: transparent; }
+.micb.off .ico { color: var(--txt-4); }
 
-/* Во время речи дышит ТОЛЬКО цвет — paint-only свойство. Пульсирующее
-   кольцо и масштаб здесь были бы вдвойне неправильны: и мишура, и
-   продвижение слоя в середине сессии (потеря альфы в CEF). Нижняя точка
-   дыхания остаётся в акценте — иконка не «моргает» в серый. */
-@keyframes micTalk {
-  0%, 100% { color: var(--acc); }
-  50%      { color: var(--txt); }
-}
-
-/* Перечёркнутый микрофон в состоянии off — тем же приглушённым тоном,
-   что и сама иконка (currentColor), а не белой линией. */
 .micb.off::after {
   content: '';
   position: absolute;
-  left: 24%; right: 24%; top: 50%;
+  left: 26%; right: 26%; top: 50%;
   height: 1px;
   background: currentColor;
   transform: rotate(-45deg);
 }
 
-/* ---------------------------------------------------------------------
-   ENV-ПОЛОСА — время и погода, один компактный индикатор из двух
-   сегментов, разведённых по краям плашки, с тонким тёмным
-   разделителем между ними
-
-     [часы] 8:56 PM      |      [облако] 70°F
-
-   Полоса растянута на ширину колонки (align-items: stretch у .rail),
-   поэтому её правый край совпадает с правым краем карточки кластера, а
-   пешком она одна держит правую сторону композиции. Сегменты — .chip;
-   высота общая со всеми спутниками. Иконка времени — не декорация:
-   render.js переключает её на луну ночью и на часы днём (солнце занято
-   погодным сегментом).
-
-   ПОЧЕМУ РАЗДЕЛИТЕЛЬ ОСТАЁТСЯ В ПОТОКЕ. Он делит не плашку, а два
-   сегмента, поэтому обязан стоять на равном расстоянии от обоих —
-   именно это и даёт space-between с симметричными margin. Если
-   привязать его к оси плашки (left: 50%), при разной ширине сегментов
-   («12:56 PM» против «70°F») воздух слева и справа от линии
-   разъезжается на десяток пикселей, и линия начинает читаться
-   сдвинутой относительно текста, который она разделяет.
-   ------------------------------------------------------------------ */
-
-.env {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 2.1rem;
-  padding: 0 .7rem;
-}
-
-.chip {
-  display: flex;
-  align-items: center;
-  gap: .38rem;
-}
-
-/* Иконка несёт собственный сайдбиринг — компенсируем, чтобы сегмент
-   начинался с той же оптической точки, что и текст. В обоих сегментах
-   иконка идёт первой; тон третичный — иконка подписывает значение,
-   а не соревнуется с ним. */
-.chip > .ico:first-child { margin-left: -.06rem; color: var(--txt-3); }
-
-.env__sep {
-  flex: none;
-  width: 1px;
-  /* .95rem ≈ 0.45 высоты плашки: линия отбивает сегменты, но не
-     дотягивается до кромок и не превращается в «рамку». */
-  height: .95rem;
-  margin: 0 .55rem;
-  /* Тёмная волосяная линия на тон темнее кромки .surf: на ярком кадре
-     сегментация видна, ночью тихо растворяется. Никаких светлых
-     разделителей — это было бы тем самым светлым краем. */
-  background: rgba(0, 0, 0, .42);
-}
-
-.chip__val {
-  font-size: 1.05rem;
-  font-variation-settings: "wght" 600;
-  letter-spacing: -.005em;
-  color: var(--txt);
-  text-shadow: var(--edge);
-  font-variant-numeric: tabular-nums;
-}
+.micb.talking { background: var(--acc); }
+.micb.talking .ico { color: var(--on-acc); }
 
 /* ---------------------------------------------------------------------
-   КАРТОЧКА АВТОМОБИЛЯ
-
-   Приоритет строго как в ТЗ: SPEED → MPH → знак лимита → P R N D S
-   (+ лампа ремня) → топливо и процент → радио. Одна карточка из двух
-   плашек без зазора: тело (.panel, --surface-2) и футер (.rdo,
-   --surface-3) — футер плотнее и темнее, поэтому читается основанием
-   карточки, а не отдельной плашкой. Скруглены только внешние углы.
-   min-width 14rem ≈ 0.71 диаметра radar. Худший случай (KM/H +
-   трёхзначный лимит + «+200») укладывается — карточка почти не дышит.
-
-   У .cluster фона нет: это прозрачный столбец «тело + футер».
-   Поверхность несёт только .panel и .rdo, ровно по своему
-   содержимому — большие контейнеры с фоном дают «чёрные квадраты»
-   в CEF. align-items: stretch выравнивает футер ровно в ширину тела.
+   КЛАСТЕР — карточка без кромок: герой-скорость слева, единица под ней
+   трекинговым лейблом; справа колонка знак лимита → передача. Ниже
+   топливо; в футере ремень + радио. Секции разведены воздухом, а не
+   линиями.
    ------------------------------------------------------------------ */
 
-.cluster {
+.drive__main {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: .5rem;
-  padding: .6rem .75rem .6rem;
-  /* Тело плотнее остальных плашек: под ним самый крупный текст HUD, и
-     он не должен «просвечивать» ярким кадром.
-     Здесь НЕТ border-top-color: светлая верхняя кромка — это ровно тот
-     эффект освещённого стекла, который запрещён. */
+  gap: .6rem;
+  padding: .75rem .85rem .6rem;
+  border-radius: var(--r-card);
   background: var(--surface-2);
-  box-shadow: var(--shadow-2);
-  border-radius: var(--r) var(--r) 0 0;
-  min-width: 14rem;
+  min-width: 12.5rem;
 }
 
-/* --- скорость: самый заметный элемент всего HUD --- */
-
-.speedrow {
+.drive__top {
   display: flex;
-  align-items: baseline;
-  gap: .45rem;
-  width: 100%;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .8rem;
 }
+
+/* --- скорость: герой композиции --- */
+
+.drive__speed { display: flex; flex-direction: column; }
 
 .speed {
-  font-size: 2.7rem;
-  line-height: .82;
-  font-variation-settings: "wght" 720;
-  letter-spacing: -.03em;
+  font-size: 3.4rem;
+  line-height: .8;
+  /* 760, а не 800: цифры остаются геройскими, но без лишнего жира —
+     межбуквенные просветы не заливаются на мелком кегле CEF. */
+  font-variation-settings: "wght" 760;
+  letter-spacing: -.04em;
   color: #fff;
-  /* Табличные цифры: «058» → «059» не дёргает строку. */
   font-variant-numeric: tabular-nums;
-  /* Тонкая тёмная обводка вместо подложки: цифры читаются на снегу и
-     на солнце, но без cartoon-stroke и без нагрузки на CEF. */
   text-shadow: var(--edge-lg);
 }
 
-/* MPH / KM/H — маленький трекинговый label у базовой линии цифр,
-   а не второй заголовок. */
-.speed__unit {
-  font-size: .78rem;
-  font-variation-settings: "wght" 640;
-  letter-spacing: .14em;
+/* Гашёные ведущие нули: «041» читается как 41, ширина строки стабильна;
+   на стоянке — чистый «0». */
+.speed .dz {
+  color: rgba(255, 255, 255, .28);
+  text-shadow: none;
+}
+
+/* Единица — НЕ рядом с цифрами, а под ними: трекинговый микро-лейбл,
+   редакционный приём, который мгновенно отличает новую систему. */
+.drive__unit {
+  margin-top: .32rem;
+  font-size: .66rem;
+  font-variation-settings: "wght" 700;
+  letter-spacing: .32em;
   color: var(--txt-3);
   text-shadow: var(--edge);
 }
 
-/* --- ограничитель скорости: знак справа от цифр + delta при превышении --- */
+/* --- правая колонка: лимит сверху, передача ниже --- */
 
+.drive__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  align-self: stretch;
+  gap: .5rem;
+  padding-top: .12rem;
+}
+
+/* Знак лимита — скруглённый квадрат-колодец (форма дорожного знака),
+   без кольца: в новом языке контур заменяет тонировка. Превышение —
+   акцентная инверсия. */
 .limit {
   display: flex;
   align-items: center;
-  /* speedrow выравнивает по базовой линии, поэтому знак центруем по
-     высоте цифр вручную: align-self центрует по line-box, а cap-height
-     цифр смещён выше его середины. */
-  align-self: center;
-  position: relative;
-  top: -.16rem;
-  gap: .35rem;
-  margin-left: auto;
-  padding-left: .6rem;
-  overflow: hidden;
+  gap: .3rem;
   transition: opacity .18s ease;
 }
 
-/* limit == 0 → знак скрыт и не занимает места: ширина карточки не
-   «зависает» под невидимый круг. */
-.limit.hide {
-  opacity: 0;
-  width: 0;
-  padding-left: 0;
-}
+.limit.hide { opacity: 0; width: 0; overflow: hidden; }
 
 .limit__sign {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 50%;
-  /* Просто более тёмный круг внутри карточки: без светлой заливки,
-     без обводки светлее фона, без свечения. */
+  min-width: 1.7rem;
+  height: 1.7rem;
+  padding: 0 .3rem;   /* трёхзначный лимит (100+) не упирается в стенки */
+  border-radius: var(--r-chip);
   background: var(--sunken);
-  border: 1px solid var(--line-2);
   color: var(--txt);
-  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+  transition: background-color .2s ease, color .2s ease;
 }
 
 .limit__sign span {
-  font-size: .82rem;
+  font-size: .8rem;
   line-height: 1;
-  font-variation-settings: "wght" 680;
+  font-variation-settings: "wght" 700;
   color: inherit;
   text-shadow: var(--edge);
   font-variant-numeric: tabular-nums;
 }
 
-/* Превышение: знак заливается акцентом, цифры уходят в тёмное —
-   инверсия, а не неоновый ободок. */
-.limit__sign.over {
-  background: var(--acc);
-  border-color: var(--acc);
-  color: var(--on-acc);
-}
-
+.limit__sign.over { background: var(--acc); color: var(--on-acc); }
 .limit__sign.over span { text-shadow: none; }
 
-/* Delta «+8» — сразу справа от знака, только при превышении.
-   display:none, а не visibility: пустая delta не должна оставлять
-   после себя зазор у правого края карточки. */
+/* Delta «+8» — слева от знака при превышении; колонка прижата вправо,
+   поэтому появление не трогает знак и не дышит карточкой. */
 .limit__delta {
-  display: none;
-  font-size: .85rem;
+  font-size: .78rem;
   font-variation-settings: "wght" 700;
   color: var(--acc);
   text-shadow: var(--edge);
@@ -406,172 +289,127 @@
   white-space: nowrap;
 }
 
-.limit__delta.on { display: block; }
-
-/* --- селектор передач: ряд равных клеток, активная стоит в тёмном колодце ---
-
-   Каждая буква живёт в квадратной клетке 1.35rem: клетки равны, поэтому
-   строка не дышит при смене передачи, а скользящий колодец .gears__cap
-   (его позицию и ширину ставит render.js по offsetLeft/offsetWidth
-   активной клетки) всегда одного размера. Активная буква — акцент и вес
-   700 поверх колодца; неактивные — третичный тон. Это тот же приём,
-   что у знака лимита: состояние = тёмный колодец, тревога = инверсия. */
-
-.gears {
-  position: relative;
+/* ПЕРЕДАЧА — вместо ленты P R N D S одна крупная активная буква
+   (акцент) + вертикальная колонка из пяти точек-позиций PRNDS:
+   минимально, но контекст сохранён. */
+.gear {
   display: flex;
   align-items: center;
-  gap: .25rem;
-  height: 1.35rem;
+  gap: .42rem;
 }
 
-.gears span {
-  position: relative;
-  min-width: 1.35rem;
-  height: 1.35rem;
+.gear__dots {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-variation-settings: "wght" 600;
-  letter-spacing: .02em;
-  color: var(--txt-3);
-  text-shadow: var(--edge);
-  transition: color .2s ease;
+  flex-direction: column;
+  gap: .2rem;
 }
 
-.gears span.on {
+.gear__dots i {
+  width: .22rem;
+  height: .22rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .22);
+  transition: background-color .18s ease, transform .18s ease;
+}
+
+.gear__dots i.on {
+  background: var(--acc);
+  transform: scale(1.3);
+}
+
+.gear__letter {
+  min-width: 1.05rem;
+  text-align: center;
+  font-size: 1.4rem;
+  line-height: 1;
+  font-variation-settings: "wght" 800;
   color: var(--acc);
-  font-variation-settings: "wght" 700;
+  text-shadow: var(--edge);
 }
 
-/* Колодец под активной передачей. Лежит ПОД буквами (первый ребёнок,
-   буквы — position: relative и рисуются поверх). */
-.gears__cap {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: var(--r-2);
-  background: var(--sunken);
-  border: 1px solid var(--line-2);
-  opacity: 0;
-  /* opacity выставляется мгновенно и НИКОГДА не анимируется: анимация
-     opacity продвигает новый слой и ломает альфу в CEF. */
-  transition: transform .26s cubic-bezier(.22, .61, .36, 1),
-              width .26s cubic-bezier(.22, .61, .36, 1);
-  will-change: transform;
-}
-
-/* ЛАМПА РЕМНЯ — в правом конце строки передач, как на панели
-   настоящего автомобиля: селектор слева, индикаторы справа.
-   margin-left: auto уводит её к правому краю и резервирует место
-   всегда — появление/скрытие не сдвигает передачи. Видна только
-   внутри кластера (layout.css прячет весь кластер пешком). */
-.belt {
-  display: flex;
-  margin-left: auto;
-  opacity: 0;
-  transition: opacity .18s ease;
-}
-
-.belt:not(.nodata) { opacity: 1; }
-
-/* --txt-2, а не --txt-3: ремень — статусная лампа, и на ярком небе
-   третичный тон гасит иконку. */
-.belt .ico { color: var(--txt-2); transition: color .16s ease; }
-
-/* warn = ремень не пристёгнут */
-.belt.warn .ico { color: var(--acc); }
-
-/* --- топливо: тонкая шкала + процент --- */
+/* --- топливо: светлая шкала на тёмном — новая пара тонов --- */
 
 .fuel {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  width: 100%;
+  gap: .45rem;
 }
 
 .fuel .ico { color: var(--txt-3); transition: color .2s ease; }
 
 .fuel__track {
   flex: 1;
-  min-width: 5rem;
-  height: .25rem;
-  border-radius: .125rem;
-  /* Непрозрачный графит, заметно светлее заливки карточки: пустая часть
-     шкалы читается как шкала и её не подсвечивает яркий игровой кадр
-     сквозь полупрозрачную поверхность. */
-  background: #2b2f36;
+  min-width: 4.5rem;
+  height: .28rem;
+  border-radius: .14rem;
+  background: rgba(255, 255, 255, .13);
   overflow: hidden;
 }
 
 .fuel__track i {
   display: block;
   height: 100%;
-  /* 0 до прихода данных: пока Lua не прислал fuel, шкала пустая, а не
-     полная (иначе первый кадр показывает 100% и «съезжает» вниз). */
   width: 0;
   border-radius: inherit;
-  background: rgba(255, 255, 255, .78);
+  background: rgba(255, 255, 255, .85);
   transition: width .35s ease, background-color .25s ease;
 }
 
 .fuel__pct {
-  /* «100%» держит строку без дёрганья. */
-  min-width: 2.6rem;
+  min-width: 2.4rem;
   text-align: right;
-  font-size: .85rem;
-  font-variation-settings: "wght" 600;
+  font-size: .8rem;
+  font-variation-settings: "wght" 650;
   color: var(--txt-2);
   text-shadow: var(--edge);
   font-variant-numeric: tabular-nums;
   transition: color .2s ease;
 }
 
-/* Мало топлива — единственный акцент в строке: шкала, процент и иконка
-   уходят в акцент. */
 .fuel.low .fuel__track i { background: var(--acc); }
 .fuel.low .fuel__pct { color: var(--acc); font-variation-settings: "wght" 700; }
 .fuel.low .ico { color: var(--acc); }
 
-/* --- радио: футер карточки во всю её ширину ---
-   Стоит вплотную под телом (gap 0 у .cluster), верхней кромки нет —
-   границу проводит нижняя волосяная кромка тела. Заливка --surface-3
-   плотнее тела: футер читается основанием карточки. Перед подписью —
-   точка состояния (::before): третичная в тишине, акцент в эфире.
-   Плашка нужна по той же причине, что и у остальных: 11px белого
-   текста без тёмной подложки на светлом небе не читается. */
+/* --- футер: ремень слева, радио справа; обе лампы — тихий капс --- */
 
-.rdo {
+.drive__foot {
   display: flex;
   align-items: center;
-  gap: .45rem;
-  width: 100%;
-  height: 1.5rem;
-  padding: 0 .75rem;
-  border-top: 0;
-  border-radius: 0 0 var(--r) var(--r);
-  background: var(--surface-3);
-  font-size: .72rem;
-  font-variation-settings: "wght" 640;
-  letter-spacing: .12em;
-  color: var(--txt-2);
+  gap: .5rem;
+  min-height: .95rem;
+}
+
+.belt {
+  display: flex;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.belt:not(.nodata) { opacity: 1; }
+.belt .ico { color: var(--txt-3); transition: color .16s ease; }
+.belt.warn .ico { color: var(--acc); }
+
+.rdo {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .66rem;
+  font-variation-settings: "wght" 700;
+  letter-spacing: .22em;
+  color: var(--txt-3);
   text-shadow: var(--edge);
   transition: color .16s ease;
 }
 
-.rdo::before {
-  content: '';
+.rdo__dot {
   flex: none;
-  width: .35rem;
-  height: .35rem;
+  width: .32rem;
+  height: .32rem;
   border-radius: 50%;
-  background: var(--txt-3);
+  background: rgba(255, 255, 255, .25);
   transition: background-color .16s ease;
 }
 
 .rdo.live { color: var(--acc); }
-.rdo.live::before { background: var(--acc); }
+.rdo.live .rdo__dot { background: var(--acc); }

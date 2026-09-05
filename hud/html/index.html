@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Cluster HUD</title>
+<title>Orbit HUD</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
@@ -10,73 +10,72 @@
 <body>
 <div id="hud" class="hidden">
 
-  <!-- АДРЕС — плашка над radar: [pin] 9146, Innocence Blvd. (В).
-       Одна цельная группа: pin → postal → street → направление.
-       Направление всегда замыкает блок, в фиксированном кружке. -->
+  <!-- АДРЕС — двухстрочный layered-блок над radar, левый край по левому
+       краю круга. Строка 1: улица (uppercase) + направление в конце.
+       Строка 2: пин + postal — тихая подстрочная строка. -->
   <div class="addr surf">
-    <span class="addr__pin ico ico--sm" data-icon="pin"></span>
-    <span class="addr__postal" id="postal"></span>
-    <span class="addr__street" id="street"></span>
-    <span class="addr__dir" id="compass"></span>
+    <div class="addr__row">
+      <span class="addr__street" id="street"></span>
+      <span class="addr__dir" id="compass"></span>
+    </div>
+    <div class="addr__row addr__row--sub">
+      <span class="ico ico--xs" data-icon="pin"></span>
+      <span class="addr__postal" id="postal"></span>
+    </div>
   </div>
 
-  <!-- МИКРОФОН — круглый бейдж на юго-западном радиусе radar:
-       half на карте, half на кадре — прикреплён к кругу, а не плавает.
-       talking несёт цвет, off — диагональный штрих. -->
-  <div class="micb surf" id="micwrap">
-    <span class="ico" data-icon="mic"></span>
-  </div>
-
-  <!-- ПРАВАЯ КОЛОНКА — одна вертикальная линия справа от radar:
-       env-полоса (время | погода) → панель кластера → радио-футер.
-       Якорь без фона и без размеров. -->
+  <!-- ПРАВАЯ КОЛОНКА — статус-капсула внизу (опорная линия круга),
+       автомобильный кластер над ней. Без фона у колонки. -->
   <div class="rail">
 
-    <!-- ВРЕМЯ И ПОГОДА — одна компактная полоса из двух сегментов
-         с тонким разделителем. Показана всегда; кластер ниже —
-         только за рулём, но место в колонке зарезервировано. -->
-    <div class="env surf">
-      <div class="chip">
-        <span class="ico ico--sm" id="dayicon" data-icon="moon"></span>
-        <span class="chip__val" id="time"></span>
-      </div>
-      <i class="env__sep"></i>
-      <div class="chip">
-        <span class="ico ico--sm" id="wxicon" data-icon="cloud"></span>
-        <span class="chip__val" id="temp"></span>
-      </div>
-    </div>
-
-    <!-- КЛАСТЕР АВТОМОБИЛЯ — только за рулём. Три строки:
-         скорость → передачи (+ лампа ремня в правом конце) → топливо.
-         Радио — узкий футер во всю ширину панели. -->
-    <div class="cluster">
-
-      <div class="panel surf">
-        <div class="speedrow">
-          <span class="speed" id="speed">000</span>
-          <span class="speed__unit" id="unit"></span>
-          <span class="limit" id="limitwrap">
-            <span class="limit__sign" id="limitbox"><span id="limit"></span></span>
-            <span class="limit__delta" id="delta"></span>
-          </span>
-        </div>
-
-        <div class="gears" id="gears">
-          <i class="gears__cap" id="gearcap"></i>
-          <span data-gear="P">P</span><span data-gear="R">R</span><span data-gear="N">N</span><span data-gear="D">D</span><span data-gear="S">S</span>
-          <i class="belt" id="beltpair"><i class="ico ico--sm" id="belt" data-icon="belt"></i></i>
+    <!-- КЛАСТЕР — только за рулём. Слева герой-скорость + единица под
+         ней; справа колонка: знак лимита → активная передача с точками
+         позиции PRNDS. Ниже топливо, в футере ремень + радио. -->
+    <div class="drive">
+      <div class="drive__main surf">
+        <div class="drive__top">
+          <div class="drive__speed">
+            <span class="speed" id="speed">000</span>
+            <span class="drive__unit" id="unit"></span>
+          </div>
+          <div class="drive__side">
+            <span class="limit" id="limitwrap">
+              <span class="limit__delta" id="delta"></span>
+              <span class="limit__sign" id="limitbox"><span id="limit"></span></span>
+            </span>
+            <span class="gear">
+              <i class="gear__dots" id="geardots"><i></i><i></i><i></i><i></i><i></i></i>
+              <b class="gear__letter" id="gearletter">D</b>
+            </span>
+          </div>
         </div>
 
         <div class="fuel" id="fuelrow">
-          <span class="ico ico--sm" data-icon="fuel"></span>
+          <span class="ico ico--xs" data-icon="fuel"></span>
           <span class="fuel__track"><i id="fuelbar"></i></span>
           <span class="fuel__pct" id="fuel"></span>
         </div>
+
+        <div class="drive__foot">
+          <span class="belt" id="beltpair"><span class="ico ico--xs" id="belt" data-icon="belt"></span></span>
+          <span class="rdo" id="radio"><i class="rdo__dot"></i><span id="radiolabel"></span></span>
+        </div>
       </div>
+    </div>
 
-      <div class="rdo surf" id="radio"><span id="radiolabel"></span></div>
-
+    <!-- СТАТУС — время · погода · микрофон в одной капсуле. Иконка и
+         значение — плотная пара; пары разведены шире, чем внутри пары. -->
+    <div class="status surf">
+      <span class="status__group">
+        <span class="ico ico--xs" id="dayicon" data-icon="moon"></span>
+        <span class="status__val" id="time"></span>
+      </span>
+      <i class="status__sep"></i>
+      <span class="status__group">
+        <span class="ico ico--xs" id="wxicon" data-icon="cloud"></span>
+        <span class="status__val status__val--sub" id="temp"></span>
+      </span>
+      <span class="micb" id="micwrap"><span class="ico ico--xs" data-icon="mic"></span></span>
     </div>
 
   </div>
